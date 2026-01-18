@@ -5,14 +5,14 @@ namespace MyApp.Infrastructure;
 public class UnitOfWork : IUnitOfWork
 {
     private readonly NHibernate.ISession _session;
-    private ITransaction _transaction;
-
-    public UnitOfWork()
-    {
-        _session = NHibernateHelper.SessionFactory.OpenSession();
-    }
+    private ITransaction? _transaction;
 
     public NHibernate.ISession Session => _session;
+
+    public UnitOfWork(NHibernate.ISession session)
+    {
+        _session = session;
+    }
 
     public void BeginTransaction()
     {
@@ -26,7 +26,7 @@ public class UnitOfWork : IUnitOfWork
     {
         if (_transaction != null && _transaction.IsActive)
         {
-            _transaction.Commit();
+            _transaction?.Commit();
         }
     }
 
@@ -34,13 +34,15 @@ public class UnitOfWork : IUnitOfWork
     {
         if (_transaction != null && _transaction.IsActive)
         {
-            _transaction.Rollback();
+            _transaction?.Rollback();
         }
     }
 
     public void Dispose()
     {
-        _transaction?.Dispose();
-        _session?.Dispose();
+        if (_transaction != null && _transaction.IsActive)
+        {
+            _transaction?.Dispose();
+        }
     }
 }

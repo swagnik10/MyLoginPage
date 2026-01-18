@@ -1,4 +1,5 @@
 using MyApp.Infrastructure;
+using MyApp.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,8 +10,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 // Dependency Injection
 builder.Services.AddScoped<IUnitOfWorkFactory, UnitOfWorkFactory>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+builder.Services.AddScoped<NHibernate.ISession>(sp =>
+{
+    return NHibernateHelper.SessionFactory.OpenSession();
+});
+
+
 
 var app = builder.Build();
 
@@ -24,6 +34,19 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+//from postman - pass X-User-Id in header
+app.Use(async (context, next) =>
+{
+    // DEV ONLY – REMOVE AFTER JWT
+    if (context.Request.Headers.TryGetValue("X-User-Id", out var userId))
+    {
+        context.Items["UserId"] = int.Parse(userId!);
+    }
+
+    await next();
+});
+
 
 app.MapControllers();
 

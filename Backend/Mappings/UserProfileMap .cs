@@ -11,10 +11,11 @@ public class UserProfileMap : ClassMap<UserProfile>
         Id(x => x.ProfileId)
             .GeneratedBy.Identity();
 
-        References(x => x.User)
-            .Column("UserId")
-            .Not.Nullable()
-            .Cascade.None();
+        //References(x => x.User)
+        //    .Column("UserId")
+        //    .Not.Nullable()
+        //    .Cascade.None();
+        Map(x => x.UserId);
 
         Map(x => x.FirstName);
         Map(x => x.LastName);
