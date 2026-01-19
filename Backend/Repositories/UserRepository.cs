@@ -39,5 +39,17 @@ public class UserRepository : IUserRepository
     {
         _session.Save(user);
     }
+
+    public UsersCredentials? GetById(int userId)
+    {
+        return _session
+            .Query<UsersCredentials>()
+            .FirstOrDefault(u => u.UserId == userId);
+    }
+
+    public void UpdateCredentials(UsersCredentials user)
+    {
+        _session.Update(user);
+    }
 }
 

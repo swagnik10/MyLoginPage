@@ -3,7 +3,6 @@ using MyApp.Domain;
 using MyApp.DTOs;
 using MyApp.Infrastructure;
 using MyApp.Repositories;
-using System.Text.RegularExpressions;
 
 namespace MyApp.Controllers;
 
@@ -97,49 +96,44 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
-    [HttpPost("profile")]
-    public IActionResult CreateProfile(CreateProfileRequest request)
+    [HttpPut("update-credentials")]
+    public IActionResult UpdateCredentials(UpdateCredentialsRequest request)
     {
-        // TEMPORARY SOURCE (until JWT)
-        int userId = HttpContext.Items["UserId"] as int? ?? 0;
-
-        if (userId <= 0)
-            return Unauthorized("Invalid user session");
-
-
-        if (string.IsNullOrWhiteSpace(request.FirstName) ||
-            string.IsNullOrWhiteSpace(request.LastName))
-            return BadRequest("First name and last name are required");
-
-        // Phone validation (digits + length)
-        if (!Regex.IsMatch(request.PhoneNumber, @"^\d{10}$"))
-            return BadRequest("Invalid phone number format");
-
-        // Ensure profile does not already exist
-        if (_profileRepository.ProfileExists(userId))
-            return BadRequest("Profile already exists");
+        var userId = (int?)HttpContext.Items["UserId"];
+        if (userId == null)
+            return Unauthorized();
 
         using var uow = _unitOfWorkFactory.Create();
         uow.BeginTransaction();
 
         try
         {
+            var user = _userRepository.GetById(userId.Value);
+            if (user == null)
+                return NotFound();
 
-            var profile = new UserProfile
+            // Username update
+            if (!string.IsNullOrWhiteSpace(request.UserName))
             {
-                UserId = userId,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Address = request.Address,
-                PhoneNumber = request.PhoneNumber,
-                CreatedDate = DateTime.UtcNow,
-                UpdatedDate = DateTime.UtcNow
-            };
+                if (_userRepository.UserNameExists(request.UserName))
+                    return BadRequest("Username already exists");
 
-            _profileRepository.CreateProfile(profile);
+                user.UserName = request.UserName;
+            }
 
+            // Password update (plain text for now)
+            if (!string.IsNullOrWhiteSpace(request.Password))
+            {
+                if (request.Password.Length < 6)
+                    return BadRequest("Password must be at least 6 characters");
+
+                user.Password = request.Password;
+            }
+
+            _userRepository.UpdateCredentials(user);
             uow.Commit();
-            return Ok("Profile created successfully");
+
+            return Ok("Credentials updated successfully");
         }
         catch
         {
@@ -148,6 +142,15 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        // DEV / PRE-JWT:
+        // Nothing to invalidate on server
+        // Frontend will clear local storage / memory
+
+        return Ok("Logged out successfully");
+    }
 
 
 }

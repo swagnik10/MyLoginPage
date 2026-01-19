@@ -8,5 +8,7 @@ public interface IUserRepository
     UsersCredentials? GetByUserName(string userName);
     UsersCredentials? GetByCredentials(string userName, string password);
     void CreateUser(UsersCredentials user);
+    UsersCredentials? GetById(int userId);
+    void UpdateCredentials(UsersCredentials user);
 }
 
