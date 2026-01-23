@@ -85,7 +85,10 @@ public class ProfileController : ControllerBase
             _profileRepository.CreateProfile(profile);
 
             uow.Commit();
-            return Ok("Profile created successfully");
+            return Ok(new
+            {
+                message = "Profile created successfully"
+            });
         }
         catch
         {
@@ -122,13 +125,28 @@ public class ProfileController : ControllerBase
             _profileRepository.UpdateProfile(profile);
 
             uow.Commit();
-            return Ok("Profile updated successfully");
+            return Ok(new
+            {
+                message = "Profile updated successfully"
+            });
         }
         catch
         {
             uow.Rollback();
             throw;
         }
+    }
+
+
+    [HttpGet("status")]
+    public IActionResult GetProfileStatus([FromHeader(Name = "X-User-Id")] int userId)
+    {
+        if (userId <= 0)
+            return Unauthorized();
+
+        bool exists = _profileRepository.ProfileExists(userId);
+
+        return Ok(new { hasProfile = exists });
     }
 
 }

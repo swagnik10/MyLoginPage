@@ -54,7 +54,11 @@ public class AuthController : ControllerBase
             _userRepository.CreateUser(user);
 
             uow.Commit();
-            return Ok("User registered successfully");
+            return Ok(new
+            {
+                message = "User registered successfully"
+            });
+
         }
         catch
         {
@@ -133,7 +137,11 @@ public class AuthController : ControllerBase
             _userRepository.UpdateCredentials(user);
             uow.Commit();
 
-            return Ok("Credentials updated successfully");
+            return Ok(new
+            {
+                message = "Credentials updated successfully"
+            });
+
         }
         catch
         {
@@ -149,7 +157,10 @@ public class AuthController : ControllerBase
         // Nothing to invalidate on server
         // Frontend will clear local storage / memory
 
-        return Ok("Logged out successfully");
+        return Ok(new
+        {
+            message = "Logged out successfully"
+        });
     }
 
 

@@ -21,6 +21,17 @@ builder.Services.AddScoped<NHibernate.ISession>(sp =>
 });
 
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevCorsPolicy", policy =>
+    {
+        policy
+            .WithOrigins("http://127.0.0.1:5801")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 
 var app = builder.Build();
 
@@ -47,6 +58,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseCors("DevCorsPolicy");
 
 app.MapControllers();
 
