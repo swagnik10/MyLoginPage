@@ -16,10 +16,10 @@ function getUserProfile() {
         method: "GET"
     })
     .then(result => {
-        document.getElementById("firstName").value = result.firstName;
-        document.getElementById("lastName").value = result.lastName;
-        document.getElementById("address").value = result.address;
-        document.getElementById("phoneNumber").value = result.phoneNumber;
+        document.getElementById("firstName").value = result.data.firstName;
+        document.getElementById("lastName").value = result.data.lastName;
+        document.getElementById("address").value = result.data.address;
+        document.getElementById("phoneNumber").value = result.data.phoneNumber;
     })
     .catch(error => {
         alert("Failed to determine profile data");

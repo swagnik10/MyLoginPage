@@ -21,28 +21,17 @@ function login() {
     })
     })
     .then(response => {
-        localStorage.setItem("userId", response.userId);
-        handlePostLogin();
+        localStorage.setItem("userId", response.data.userId);
+        if(response.data.hasProfile){
+            window.location.href = "profile-view.html";
+        }
+        else{
+            window.location.href = "profile-create.html";
+        }
     })
     .catch(error => {
         alert(error.message || error);
     });
 
-}
-
-function handlePostLogin() {
-    apiRequest("/profile/status", {
-        method: "GET"
-    })
-    .then(result => {
-        if (result.hasProfile) {
-            window.location.href = "profile-view.html";
-        } else {
-            window.location.href = "profile-create.html";
-        }
-    })
-    .catch(error => {
-        alert("Failed to determine profile status");
-    });
 }
 

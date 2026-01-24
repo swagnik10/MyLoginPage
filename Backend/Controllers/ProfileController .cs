@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MyApp.Contract;
 using MyApp.Domain;
 using MyApp.DTOs;
 using MyApp.Infrastructure;
@@ -14,32 +15,47 @@ public class ProfileController : ControllerBase
 {
     private readonly IUserProfileRepository _profileRepository;
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
-    private readonly IUserRepository _userRepository;
 
-    public ProfileController(IUserProfileRepository profileRepository, IUnitOfWorkFactory unitOfWorkFactory, IUserRepository userRepository)
+    public ProfileController(IUserProfileRepository profileRepository, IUnitOfWorkFactory unitOfWorkFactory)
     {
         _profileRepository = profileRepository;
         _unitOfWorkFactory = unitOfWorkFactory;
-        _userRepository = userRepository;
     }
 
     [HttpGet]
-    public IActionResult GetProfile([FromHeader(Name = "X-User-Id")] int userId)
+    public IActionResult GetProfile()
     {
+        var userId = (int?)HttpContext.Items["UserId"];
         if (userId <= 0)
-            return Unauthorized("User not authenticated");
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not authenticated",
+                Data = null
+            });
 
-        var profile = _profileRepository.GetByUserId(userId);
+        var profile = _profileRepository.GetByUserId(userId ?? 0);
 
         if (profile == null)
-            return NoContent(); // NEW USER → Page 2
+            return Ok(new ApiResponse<object> {
+                Success = true,
+                Message = "Profile not found",
+                Data = null
+            });        
 
-        return Ok(new
+        ProfileDto profileData = new()
         {
-            firstName = profile.FirstName,
-            lastName = profile.LastName,
-            address= profile.Address,
-            phoneNumber = profile.PhoneNumber
+            FirstName = profile.FirstName,
+            LastName = profile.LastName,
+            Address = profile.Address,
+            PhoneNumber = profile.PhoneNumber
+        };
+
+        return Ok(new ApiResponse<ProfileDto>
+        {
+            Success = true,
+            Message = "Profile retrieved successfully",
+            Data = profileData
         });
     }
 
@@ -50,16 +66,31 @@ public class ProfileController : ControllerBase
         int userId = HttpContext.Items["UserId"] as int? ?? 0;
 
         if (userId <= 0)
-            return Unauthorized("Invalid user session");
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not authenticated",
+                Data = null
+            });
 
 
         if (string.IsNullOrWhiteSpace(request.FirstName) ||
             string.IsNullOrWhiteSpace(request.LastName))
-            return BadRequest("First name and last name are required");
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "First name and last name are required",
+                Data = null
+            });
 
         // Phone validation (digits + length)
         if (!Regex.IsMatch(request.PhoneNumber, @"^\d{10}$"))
-            return BadRequest("Invalid phone number format");
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Invalid phone number format",
+                Data = null
+            });
 
         using var uow = _unitOfWorkFactory.Create();
         uow.BeginTransaction();
@@ -69,7 +100,12 @@ public class ProfileController : ControllerBase
 
             // Ensure profile does not already exist
             if (_profileRepository.ProfileExists(userId))
-                return BadRequest("Profile already exists");
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Profile already exists",
+                    Data = null
+                });
 
             var profile = new UserProfile
             {
@@ -85,35 +121,57 @@ public class ProfileController : ControllerBase
             _profileRepository.CreateProfile(profile);
 
             uow.Commit();
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "Profile created successfully"
+                Success = true,
+                Data = null,
+                Message = "Profile created successfully"
             });
         }
-        catch
+        catch(Exception ex)
         {
             uow.Rollback();
-            throw;
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Data = null,
+                Success = false,
+                Message = ex.Message
+            });
         }
     }
 
     [HttpPut]
-    public IActionResult UpdateProfile( [FromHeader(Name = "X-User-Id")] int userId, [FromBody] UpdateProfileRequest request)
+    public IActionResult UpdateProfile([FromBody] UpdateProfileRequest request)
     {
+        var userId = (int?)HttpContext.Items["UserId"];
         if (userId <= 0)
-            return Unauthorized("User not authenticated");
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not authenticated",
+                Data = null
+            });
 
         if (!Regex.IsMatch(request.PhoneNumber, @"^\d{10}$"))
-            return BadRequest("Invalid phone number format");
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Invalid phone number format",
+                Data = null
+            });
 
         using var uow = _unitOfWorkFactory.Create();
         uow.BeginTransaction();
 
         try
         {
-            var profile = _profileRepository.GetByUserId(userId);
+            var profile = _profileRepository.GetByUserId(userId ?? 0);
             if (profile == null)
-                return NotFound("Profile does not exist");
+                return Ok(new ApiResponse<object> {
+                    Success = false,
+                    Message = "Profile not found",
+                    Data = null
+                });
 
             // Update profile fields
             profile.FirstName = request.FirstName;
@@ -125,28 +183,23 @@ public class ProfileController : ControllerBase
             _profileRepository.UpdateProfile(profile);
 
             uow.Commit();
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "Profile updated successfully"
+                Success = true,
+                Data = null,
+                Message = "Profile updated successfully"
             });
         }
-        catch
+        catch(Exception ex)
         {
             uow.Rollback();
-            throw;
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Data = null,
+                Success = false,
+                Message = ex.Message
+            });
         }
-    }
-
-
-    [HttpGet("status")]
-    public IActionResult GetProfileStatus([FromHeader(Name = "X-User-Id")] int userId)
-    {
-        if (userId <= 0)
-            return Unauthorized();
-
-        bool exists = _profileRepository.ProfileExists(userId);
-
-        return Ok(new { hasProfile = exists });
     }
 
 }

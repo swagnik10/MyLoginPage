@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MyApp.Contract;
 using MyApp.Domain;
 using MyApp.DTOs;
 using MyApp.Infrastructure;
@@ -35,12 +36,23 @@ public class AuthController : ControllerBase
             // Username uniqueness
             if (_userRepository.UserNameExists(request.UserName))
             {
-                return BadRequest("Username already exists");
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Username already exists",
+                    Data = null
+                });
+
             }
             // Password rule (length only for now)
             if (request.Password.Length < 6)
             {
-                return BadRequest("Password must be at least 6 characters");
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Password must be at least 6 characters",
+                    Data = null
+                });
             }
 
             var user = new UsersCredentials
@@ -54,16 +66,24 @@ public class AuthController : ControllerBase
             _userRepository.CreateUser(user);
 
             uow.Commit();
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "User registered successfully"
+                Success = true,
+                Data = null,
+                Message = "User registered successfully"
             });
 
         }
-        catch
+        catch(Exception ex)
         {
             uow.Rollback();
-            throw;
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Data = null,
+                Success = false,
+                Message = ex.Message
+            });
+
         }
     }
 
@@ -74,18 +94,27 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.UserName) ||
             string.IsNullOrWhiteSpace(request.Password))
         {
-            return BadRequest("Username and password are required");
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Username and password are required",
+                Data = null
+            });
         }
 
         // Fetch user by username
         var user = _userRepository.GetByUserName(request.UserName);
 
         if (user == null)
-            return BadRequest("Invalid username");
+            return BadRequest(new ApiResponse<object>{
+                Success = false,
+                Message = "Invalid username",
+                Data = null
+        });
 
         // Validate password (plain text for now)
         if (user.Password != request.Password)
-            return BadRequest("Invalid password");
+            return BadRequest(new ApiResponse<object> { Success = false, Message = "Invalid password", Data = null });
 
         // Check profile existence
         bool hasProfile = _profileRepository.ProfileExists(user.UserId);
@@ -97,7 +126,12 @@ public class AuthController : ControllerBase
             HasProfile = hasProfile
         };
 
-        return Ok(response);
+        return Ok(new ApiResponse<LoginResponse>
+        {
+            Message = "Login successful",
+            Data = response,
+            Success = true
+        });
     }
 
     [HttpPut("update-credentials")]
@@ -105,7 +139,12 @@ public class AuthController : ControllerBase
     {
         var userId = (int?)HttpContext.Items["UserId"];
         if (userId == null)
-            return Unauthorized();
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not authenticated",
+                Data = null
+            });
 
         using var uow = _unitOfWorkFactory.Create();
         uow.BeginTransaction();
@@ -114,13 +153,18 @@ public class AuthController : ControllerBase
         {
             var user = _userRepository.GetById(userId.Value);
             if (user == null)
-                return NotFound();
+                return Ok(new { data = (object?)null });
 
             // Username update
             if (!string.IsNullOrWhiteSpace(request.UserName))
             {
                 if (_userRepository.UserNameExists(request.UserName))
-                    return BadRequest("Username already exists");
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Username already exists",
+                        Data = null
+                    });
 
                 user.UserName = request.UserName;
             }
@@ -129,7 +173,12 @@ public class AuthController : ControllerBase
             if (!string.IsNullOrWhiteSpace(request.Password))
             {
                 if (request.Password.Length < 6)
-                    return BadRequest("Password must be at least 6 characters");
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Password must be at least 6 characters",
+                        Data = null
+                    });
 
                 user.Password = request.Password;
             }
@@ -137,16 +186,23 @@ public class AuthController : ControllerBase
             _userRepository.UpdateCredentials(user);
             uow.Commit();
 
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "Credentials updated successfully"
+                Success = true,
+                Message = "Credentials updated successfully",
+                Data = null
             });
 
         }
-        catch
+        catch(Exception ex)
         {
             uow.Rollback();
-            throw;
+            return StatusCode(500, new ApiResponse<object>
+            {
+                Data = null,
+                Success = false,
+                Message = ex.Message
+            });
         }
     }
 
@@ -157,9 +213,11 @@ public class AuthController : ControllerBase
         // Nothing to invalidate on server
         // Frontend will clear local storage / memory
 
-        return Ok(new
+        return Ok(new ApiResponse<object>
         {
-            message = "Logged out successfully"
+            Success = true,
+            Data = null,
+            Message = "Logged out successfully"
         });
     }
 
@@ -168,14 +226,27 @@ public class AuthController : ControllerBase
     {
         var userId = (int?)HttpContext.Items["UserId"];
         if (userId == null || userId < 0 )
-            return Unauthorized();
+            return Unauthorized(new ApiResponse<object> { Success = false, Message = "User not authenticated", Data = null });
         var user = _userRepository.GetById(userId.Value);
         if (user == null)
-            return NotFound();
-        return Ok(new
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "No user found",
+                Data = null
+            });
+
+        LoginRequest response = new LoginRequest
         {
-            userName = user.UserName,
-            password = user.Password
+            UserName = user.UserName,
+            Password = user.Password
+        };
+
+        return Ok(new ApiResponse<LoginRequest>
+        {
+            Success = true,
+            Message = "User credentials fetched successfully",
+            Data = response
         });
     }
 

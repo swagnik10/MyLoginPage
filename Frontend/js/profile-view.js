@@ -9,10 +9,10 @@ function viewUserProfile() {
     .then(result => {
         console.log(result);
         document.getElementById("profileView").innerHTML = `
-            <h2>Hi! ${result.firstName} ${result.lastName}</h2>
+            <h2>Hi! ${result.data.firstName} ${result.data.lastName}</h2>
             <p>Welcome to your profile page.</p>
-            <h4>You live in - ${result.address}</h4>
-            <h4>Your Phone Number is - ${result.phoneNumber}</h4>
+            <h4>You live in - ${result.data.address}</h4>
+            <h4>Your Phone Number is - ${result.data.phoneNumber}</h4>
         `;
         var btn = document.createElement("button");
         btn.addEventListener("click", () => {

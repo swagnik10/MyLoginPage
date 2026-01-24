@@ -19,8 +19,8 @@ function viewUserCredentials() {
         method: "GET"
     })
     .then(result => {
-        document.getElementById("userName").value = result.userName;
-        document.getElementById("password").value = result.password;
+        document.getElementById("userName").value = result.data.userName;
+        document.getElementById("password").value = result.data.password;
     })
     .catch(error => {
         alert("Failed to determine credentials data");
