@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("submitBtn")
-        .addEventListener("click", submitProfile);
+        .addEventListener("click", submitCredentials);
 });
 
-function submitProfile() {
+function submitCredentials() {
     const userName = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
     const confirmPassword = document.getElementById("confirmpassword").value.trim();

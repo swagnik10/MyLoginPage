@@ -133,7 +133,7 @@ public class AuthController : ControllerBase
 
                 user.Password = request.Password;
             }
-
+            user.UpdatedDate = DateTime.Now;
             _userRepository.UpdateCredentials(user);
             uow.Commit();
 
@@ -163,5 +163,20 @@ public class AuthController : ControllerBase
         });
     }
 
+    [HttpGet("get-credentials")]
+    public IActionResult GetCredentials()
+    {
+        var userId = (int?)HttpContext.Items["UserId"];
+        if (userId == null || userId < 0 )
+            return Unauthorized();
+        var user = _userRepository.GetById(userId.Value);
+        if (user == null)
+            return NotFound();
+        return Ok(new
+        {
+            userName = user.UserName,
+            password = user.Password
+        });
+    }
 
 }

@@ -36,10 +36,10 @@ public class ProfileController : ControllerBase
 
         return Ok(new
         {
-            profile.FirstName,
-            profile.LastName,
-            profile.Address,
-            profile.PhoneNumber
+            firstName = profile.FirstName,
+            lastName = profile.LastName,
+            address= profile.Address,
+            phoneNumber = profile.PhoneNumber
         });
     }
 

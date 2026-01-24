@@ -1,7 +1,6 @@
 async function apiRequest(url, options = {}) {
     const headers = options.headers || {};
 
-    // DEV ONLY – temporary user context
     const userId = localStorage.getItem("userId");
     if (userId) {
         headers["X-User-Id"] = userId;
@@ -14,11 +13,20 @@ async function apiRequest(url, options = {}) {
         headers
     });
 
-    const text = await response.text();
+    const contentType = response.headers.get("content-type");
 
     if (!response.ok) {
-        throw new Error(text || "Request failed");
+        const errorText = await response.text();
+        throw new Error(errorText || "Request failed");
     }
 
-    return text ? JSON.parse(text) : null;
+    if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+    }
+
+    if (contentType && contentType.includes("text/")) {
+        return await response.text();
+    }
+
+    return null;
 }
