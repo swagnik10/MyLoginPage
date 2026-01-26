@@ -1,6 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("submitBtn")
         .addEventListener("click", submitCredentials);
+
+    document.getElementById("cancelBtn")
+        .addEventListener("click", () => window.location.href = "index.html");
 });
 
 function submitCredentials() {

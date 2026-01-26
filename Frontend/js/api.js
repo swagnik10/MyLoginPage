@@ -1,9 +1,9 @@
 async function apiRequest(url, options = {}) {
     const headers = options.headers || {};
 
-    const userId = localStorage.getItem("userId");
-    if (userId) {
-        headers["X-User-Id"] = userId;
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
     }
 
     headers["Content-Type"] = "application/json";
@@ -21,6 +21,9 @@ async function apiRequest(url, options = {}) {
 
     if (!response.ok) {
         //const errorText = await response.text();
+        if (response.status === 401) {
+            handleUnauthorized();
+        }
         throw new Error(result.message || "Request failed");
     }
 

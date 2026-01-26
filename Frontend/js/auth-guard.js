@@ -1,7 +1,12 @@
 (function () {
-    const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("accessToken");
 
     if (!userId) {
-        window.location.href = "index.html";
+        handleUnauthorized();
     }
 })();
+
+function handleUnauthorized() {
+    localStorage.removeItem("accessToken");
+    window.location.href = "index.html";
+}

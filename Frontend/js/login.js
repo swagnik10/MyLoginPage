@@ -22,12 +22,12 @@ function login() {
             return;
         }
 
-        if (!res.data || !res.data.userId) {
+        if (!res.data || !res.data.accessToken) {
             alert("Invalid server response");
             return;
         }
 
-        localStorage.setItem("userId", res.data.userId);
+        localStorage.setItem("accessToken", res.data.accessToken);
         navigateAfterLogin(res.data);
     })
     .catch(err => {

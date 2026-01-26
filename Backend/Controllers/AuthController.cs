@@ -1,28 +1,34 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MyApp.Contract;
+using MyApp.Controllers.Base;
 using MyApp.Domain;
 using MyApp.DTOs;
 using MyApp.Infrastructure;
+using MyApp.Infrastructure.Security;
 using MyApp.Repositories;
 
 namespace MyApp.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController : ApiControllerBase
 {
     private readonly IUnitOfWorkFactory _unitOfWorkFactory;
     private readonly IUserRepository _userRepository;
     private readonly IUserProfileRepository _profileRepository;
+    private readonly IJwtTokenService _jwtTokenService;
 
     public AuthController(
         IUnitOfWorkFactory unitOfWorkFactory,
         IUserRepository userRepository,
-        IUserProfileRepository profileRepository)
+        IUserProfileRepository profileRepository,
+        IJwtTokenService jwtTokenService)
     {
         _unitOfWorkFactory = unitOfWorkFactory;
         _userRepository = userRepository;
         _profileRepository = profileRepository;
+        _jwtTokenService = jwtTokenService;
     }
 
     [HttpPost("register")]
@@ -118,12 +124,15 @@ public class AuthController : ControllerBase
 
         // Check profile existence
         bool hasProfile = _profileRepository.ProfileExists(user.UserId);
+        //genrating a token
+        var token = _jwtTokenService.GenerateToken(user.UserId, user.UserName);
 
         // Return decision to frontend
         var response = new LoginResponse
         {
             UserId = user.UserId,
-            HasProfile = hasProfile
+            HasProfile = hasProfile,
+            AccessToken = token
         };
 
         return Ok(new ApiResponse<LoginResponse>
@@ -134,24 +143,17 @@ public class AuthController : ControllerBase
         });
     }
 
+    [Authorize]
     [HttpPut("update-credentials")]
     public IActionResult UpdateCredentials(UpdateCredentialsRequest request)
     {
-        var userId = (int?)HttpContext.Items["UserId"];
-        if (userId == null)
-            return Unauthorized(new ApiResponse<object>
-            {
-                Success = false,
-                Message = "User not authenticated",
-                Data = null
-            });
-
         using var uow = _unitOfWorkFactory.Create();
         uow.BeginTransaction();
 
         try
         {
-            var user = _userRepository.GetById(userId.Value);
+            int userId = GetUserId();
+            var user = _userRepository.GetById(userId);
             if (user == null)
                 return Ok(new { data = (object?)null });
 
@@ -194,6 +196,15 @@ public class AuthController : ControllerBase
             });
 
         }
+        catch(UnauthorizedAccessException)
+        {
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not authenticated",
+                Data = null
+            });
+        }
         catch(Exception ex)
         {
             uow.Rollback();
@@ -221,33 +232,44 @@ public class AuthController : ControllerBase
         });
     }
 
+    [Authorize]
     [HttpGet("get-credentials")]
     public IActionResult GetCredentials()
     {
-        var userId = (int?)HttpContext.Items["UserId"];
-        if (userId == null || userId < 0 )
-            return Unauthorized(new ApiResponse<object> { Success = false, Message = "User not authenticated", Data = null });
-        var user = _userRepository.GetById(userId.Value);
-        if (user == null)
-            return Ok(new ApiResponse<object>
+        try
+        {
+            int userId = GetUserId();
+            var user = _userRepository.GetById(userId);
+            if (user == null)
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "No user found",
+                    Data = null
+                });
+
+            LoginRequest response = new LoginRequest
+            {
+                UserName = user.UserName,
+                Password = user.Password
+            };
+
+            return Ok(new ApiResponse<LoginRequest>
             {
                 Success = true,
-                Message = "No user found",
+                Message = "User credentials fetched successfully",
+                Data = response
+            });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "User not authenticated",
                 Data = null
             });
-
-        LoginRequest response = new LoginRequest
-        {
-            UserName = user.UserName,
-            Password = user.Password
-        };
-
-        return Ok(new ApiResponse<LoginRequest>
-        {
-            Success = true,
-            Message = "User credentials fetched successfully",
-            Data = response
-        });
+        }
     }
 
 }
