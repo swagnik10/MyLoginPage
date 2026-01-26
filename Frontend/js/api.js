@@ -15,18 +15,22 @@ async function apiRequest(url, options = {}) {
 
     const contentType = response.headers.get("content-type");
 
+    const result = contentType?.includes("application/json")
+        ? await response.json()
+        : await response.text();
+
     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Request failed");
+        //const errorText = await response.text();
+        throw new Error(result.message || "Request failed");
     }
 
-    if (contentType && contentType.includes("application/json")) {
-        return await response.json();
-    }
+    // if (contentType && contentType.includes("application/json")) {
+    //     return await response.json();
+    // }
 
-    if (contentType && contentType.includes("text/")) {
-        return await response.text();
-    }
+    // if (contentType && contentType.includes("text/")) {
+    //     return await response.text();
+    // }
 
-    return null;
+    return result;
 }

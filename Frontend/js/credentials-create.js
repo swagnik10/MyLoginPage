@@ -26,7 +26,11 @@ function submitCredentials() {
             confirmPassword
         })
     })
-    .then(() => {
+    .then((res) => {
+        if (!res.success) {
+            alert(res.message || "Credentials Create failed");
+            return;
+        }
         window.location.href = "index.html";
     })
     .catch(error => {

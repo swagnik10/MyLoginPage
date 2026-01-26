@@ -23,8 +23,14 @@ function submitProfile() {
             phoneNumber
         })
     })
-    .then(() => {
+    .then((res) => {
+        if (!res.success) {
+            alert(res.message || "Create failed");
+            return;
+        }
+        
         window.location.href = "profile-view.html";
+
     })
     .catch(error => {
         alert(error.message || error);

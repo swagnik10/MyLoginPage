@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const loginBtn = document.getElementById("loginBtn");
-
-    loginBtn.addEventListener("click", login);
+    document.getElementById("loginBtn")
+        .addEventListener("click", login);
 });
 
 function login() {
@@ -14,24 +13,30 @@ function login() {
     }
 
     apiRequest("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({
-        userName: username,
-        password: password
+        method: "POST",
+        body: JSON.stringify({ userName: username, password })
     })
-    })
-    .then(response => {
-        localStorage.setItem("userId", response.data.userId);
-        if(response.data.hasProfile){
-            window.location.href = "profile-view.html";
+    .then(res => {
+        if (!res.success) {
+            alert(res.message || "Login failed");
+            return;
         }
-        else{
-            window.location.href = "profile-create.html";
-        }
-    })
-    .catch(error => {
-        alert(error.message || error);
-    });
 
+        if (!res.data || !res.data.userId) {
+            alert("Invalid server response");
+            return;
+        }
+
+        localStorage.setItem("userId", res.data.userId);
+        navigateAfterLogin(res.data);
+    })
+    .catch(err => {
+        alert(err.message || "Network error");
+    });
 }
 
+function navigateAfterLogin(data) {
+    window.location.href = data.hasProfile
+        ? "profile-view.html"
+        : "profile-create.html";
+}

@@ -6,13 +6,27 @@ function viewUserProfile() {
     apiRequest("/profile", {
         method: "GET"
     })
-    .then(result => {
-        console.log(result);
-        document.getElementById("profileView").innerHTML = `
-            <h2>Hi! ${result.data.firstName} ${result.data.lastName}</h2>
+    .then(res => {
+
+        if (!res.success) {
+            alert(res.message || "View failed");
+            return;
+        }
+        renderProfile(res.data);
+        //console.log(res);
+
+    })
+    .catch(error => {
+        alert(error.message || "Failed to determine profile status");
+    });
+}
+
+function renderProfile(data) {
+    document.getElementById("profileView").innerHTML = `
+            <h2>Hi! ${data.firstName} ${data.lastName}</h2>
             <p>Welcome to your profile page.</p>
-            <h4>You live in - ${result.data.address}</h4>
-            <h4>Your Phone Number is - ${result.data.phoneNumber}</h4>
+            <h4>You live in - ${data.address}</h4>
+            <h4>Your Phone Number is - ${data.phoneNumber}</h4>
         `;
         var btn = document.createElement("button");
         btn.addEventListener("click", () => {
@@ -20,8 +34,4 @@ function viewUserProfile() {
         });
         btn.textContent = "Update Profile";
         document.body.appendChild(btn);
-    })
-    .catch(error => {
-        alert("Failed to determine profile status");
-    });
 }
